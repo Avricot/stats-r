@@ -39,3 +39,5 @@ ggplot(data = sample_means15, aes(x = x_bar)) + geom_histogram(binwidth = 20)
 sample_means150 <- rep_sample_n(ames, size = 150, reps = 2000, replace = TRUE) %>% summarise(x_bar = mean(price))
 summarise(sample_means150, x_bar = mean(x_bar))
 ggplot(data = sample_means150, aes(x = x_bar)) + geom_histogram(binwidth = 20)
+
+dbinom(92, size=100, p=0.9)

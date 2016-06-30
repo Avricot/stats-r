@@ -1,0 +1,193 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+
+### Load data
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+The Behavioral Risk Factor Surveillance System (BRFSS) is a US health Survey that looks at behavioral risk factors.
+The survey is administred by phone and cellular phone. This survey is conducted in 50 US States plus the District of Columbia, Guam, Puerto Rico, and the U.S. Virgin Island.s
+
+###Generalizability
+
+The BRFSS survey could be generalizable to the same population than the sample : US citizen having more than 18 years old, who live in a private residence or college housing only, in the same states as the survey.<br/>
+By conducting the surveys by cellular phone in addition to "landline" phones, the survey should be much more representating and therefore generalizable.<br/>
+However, some part of the population will be excluded (without phone, or with private numbers).<br/><br/>
+Also, the exact time of the phone call is subject to give more weight to a specific population (if the survey is only done during business hours, people working at this time won't answer) and therefore lead a generalization might not be accurate.<br/>
+Random sampling seems to be used, but because it might not cover equaly all the population, one should be careful when doing conclusion and generalization on this survey
+
+###causality
+Of course correlation doesn't mean causality. Only an expert in a given field could analyze all the parameters and say if the causality is likely to exists. Many differents things can explain causality : random (see http://www.tylervigen.com/), external parameter influencing etc.
+Without a very good knowledge of the subject, it's quite hasardious to make any causality, even though a few seem obvious.
+
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+
+Does the sleep time `sleptim1` follow a normal distribution ?
+If the population is say split in 2 different groups (sleeping a lot, sleeping a few), this could help to study this and try to find correlation that could explain the scheme.
+
+**Research quesion 2:**
+
+Does the income level `income2` play a role to the way people eat dark green vegetables `fvbeans` and orange `fvorang` colored vegetables ?
+
+**Research quesion 3:**
+
+Can we find a relation between the number of vegetables consumed ber day `_vegesum` and cancer `chcscncr` and `chcocncr`. This could follow the idea that the consumtion of vegetable could help in cancer prevention.
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+**Research quesion 1:** Does the sleep time `sleptim1` follow a normal distribution ?
+First we clean the data, remove the NA and display some information about the data
+```{r}
+brfss2013$sleptim1[brfss2013$sleptim1>20] = NA
+clean_brfss2013_sleep = brfss2013[!(is.na(brfss2013$sleptim1)),]
+summary(clean_brfss2013_sleep$sleptim1)
+```
+
+To speedup the process we only use a sample population of 10 000
+```{r}
+sleep_sample <- clean_brfss2013_sleep[sample(1:nrow(clean_brfss2013_sleep), 10000, replace=FALSE),]
+```
+Trace the histogram
+```{r}
+ggplot(data = sleep_sample, aes(x = sleptim1)) +  geom_histogram(binwidth = 1)
+```
+<br/>The population seems to be normal but skewed. Let's trace the normal q-q graph
+```{r}
+qqnorm(sleep_sample$sleptim1)
+qqline(sleep_sample$sleptim1)
+```
+<br/>We can see that the distribution is right sweked, having more people sleeping a lot than sleeping just a few hours, which seems logical.
+<br/>
+<br/>
+<br/>
+
+**Research quesion 2:** Does the income level `income2` play a role to the way people eat dark green vegetables `fvbeans` and orange `fvorang` colored vegetables ?
+
+First we clean all the data
+```{r}
+clean_brfss2013_veg = brfss2013[!(is.na(brfss2013$fvbeans)) & !(is.na(brfss2013$fvorang)) & !(is.na(brfss2013$income2)),]
+clean_brfss2013_veg$total_veg = clean_brfss2013_veg$fvbeans + clean_brfss2013_veg$fvorang
+```
+Then we create income categories
+```{r}
+unique(clean_brfss2013_veg$income2)
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $10,000'] = 0
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $15,000'] = 1
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $20,000'] = 2
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $25,000'] = 3
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $35,000'] = 4
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $40,000'] = 5
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $45,000'] = 6
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $50,000'] = 7
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $55,000'] = 8
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $60,000'] = 9
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $65,000'] = 10
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $70,000'] = 11
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == 'Less than $75,000'] = 12
+clean_brfss2013_veg$income_cat[clean_brfss2013_veg$income2 == '$75,000 or more'] = 13
+unique(clean_brfss2013_veg$income_cat)
+
+```
+Drawn the boxplot from the categories
+```{r}
+boxplot(clean_brfss2013_veg$total_veg ~ clean_brfss2013_veg$income_cat, ann=F)
+```
+<br/>
+Let's take a sample to speedup process
+```{r}
+veg_sample <- clean_brfss2013_veg[sample(1:nrow(clean_brfss2013_veg), 10000, replace=FALSE),]
+
+plot(veg_sample$income_cat, veg_sample$total_veg, ann=F)
+```
+<br/>
+No really readable, we're going to work on the mean and median of each category
+```{r}
+fruit_mean = c()
+fruit_median= c()
+for ( i in 0:12) { 
+  fruit_mean[i]=mean(veg_sample$total_veg[veg_sample$income_cat == i])
+  fruit_median[i]=median(veg_sample$total_veg[veg_sample$income_cat == i])
+}
+```
+We plot the mean and median of the black and orange fruit consumption
+```{r}
+plot(fruit_median,col="red", xlab="black and orange fruit consumption median",ylab="income category")
+plot(fruit_mean,col="blue", xlab="black and orange fruit consumption mean",ylab="income category")
+```
+<br/>
+It seems to have a correlation between black and orange fruit consumption and the income category : the higher the income is, the more fruit is consumed.
+<br/>
+<br/>
+<br/>
+
+
+**Research quesion 3:** Can we find a relation between the number of vegetables consumed ber day `_vegesum` and cancer `chcscncr` and `chcocncr`. This could follow the idea that the consumtion of vegetable could help in cancer prevention.
+
+First we clean all the data and sum the informations
+```{r}
+clean_brfss2013_cancer = brfss2013[!(is.na(brfss2013$fvbeans)) & !(is.na(brfss2013$fvgreen)) & !(is.na(brfss2013$vegetab1)) & !(is.na(brfss2013$chcocncr)) & !(is.na(brfss2013$chcscncr)) & !(is.na(brfss2013$fvorang)),]
+clean_brfss2013_cancer$total_veg = clean_brfss2013_cancer$fvbeans + clean_brfss2013_cancer$fvorang + clean_brfss2013_cancer$fvgreen + clean_brfss2013_cancer$vegetab1
+clean_brfss2013_cancer$cancer = 0
+unique(clean_brfss2013_cancer$chcocncr)
+clean_brfss2013_cancer$cancer[clean_brfss2013_cancer$chcocncr == 'Yes'] = 1
+clean_brfss2013_cancer$cancer[clean_brfss2013_cancer$chcscncr == 'Yes'] = 1
+```
+Take a sample to plot
+```{r}
+cancer_sample <- clean_brfss2013_cancer[sample(1:nrow(clean_brfss2013_cancer), 50000, replace=FALSE),]
+```
+
+
+```{r}
+plot(cancer_sample$cancer, cancer_sample$total_veg,col="red", xlab="has cancer ?",ylab="fruit_consumption")
+```
+<br/>
+Not very readable, let's trace the histogram of cancer vs non-cancer for better visualization
+```{r}
+cancer_sample_yes = subset(cancer_sample, cancer == 1)
+cancer_sample_no = subset(cancer_sample, cancer == 0)
+ggplot(data = cancer_sample_yes, aes(x = total_veg)) +  geom_histogram(binwidth = 1) +
+labs(title = paste("Cancer fruit consumption, mean=",round(mean(cancer_sample_yes$total_veg)))) +
+ylab("fruit consumption") +
+xlab("number of detected cancer")
+
+ggplot(data = cancer_sample_no, aes(x = total_veg)) +  geom_histogram(binwidth = 1) +
+labs(title = paste("Without cancer fruit consumption, mean=",round(mean(cancer_sample_no$total_veg)))) +
+ylab("fruit consumption") +
+xlab("number of person")
+
+```
+
+As we can see, the repartition looks very similar between the people having cancer vs no cancer. Therefore it's hard to find any correlation. Means are very similar.
+
